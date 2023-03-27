@@ -1,6 +1,7 @@
 from confluent_kafka.admin import AdminClient, NewTopic
 import time
 
+# TODO: refactor to one file with options (sys.argv)
 config = {
     "bootstrap.servers": "localhost:29092"
 }
@@ -21,6 +22,7 @@ for topic, f in fs.items():
     except Exception as e:
         print("Failed to delete topic {}: {}".format(topic, e))
 
+# TODO: refactor to not use sleep
 time.sleep(0.3)
 
 # topic = [NewTopic("records", num_partitions=3, replication_factor=1, config=topic_config)]

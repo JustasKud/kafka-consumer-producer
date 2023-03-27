@@ -3,9 +3,7 @@
 import pandas as pd
 from confluent_kafka import Producer
 from typing import Dict
-
-path: str = "./data/application_record.csv"
-CHUNK_SIZE: int = 1
+from config import CHUNK_SIZE, PATH
 
 config: Dict[str, str] = {
     "bootstrap.servers": "localhost:29092"
@@ -23,7 +21,7 @@ if __name__ == "__main__":
     print("Starting Kafka Producer\n")
     producer = Producer(config)
     producer.poll(0)
-    with pd.read_csv(path, chunksize=CHUNK_SIZE, nrows=2000) as reader:
+    with pd.read_csv(PATH, chunksize=CHUNK_SIZE, nrows=2000) as reader:
         for chunk in reader:
             try:
                 producer.produce("records", value=chunk.to_json(orient = "values").encode("utf-8"), key=str(chunk.iloc[0]["ID"]), on_delivery=delivery_report)
