@@ -1,32 +1,49 @@
-# deactivate && source ./venv/Scripts/activate && clear && python consumer.py
-
-import pandas as pd
+import sys
 from confluent_kafka import Producer
-from typing import Dict
-from config import CHUNK_SIZE, PATH
+from config import PATH, SERVER
+import pandas as pd
 
-config: Dict[str, str] = {
-    "bootstrap.servers": "localhost:29092"
+producer_config = {
+    "bootstrap.servers": SERVER
 }
+
 
 def delivery_report(err, msg):
     if err is not None:
-        print("Delivery failed for Message: {} : {}".format(msg.key(), err))
+        print(f"Delivery failed for Message: {msg.key()} : {err}")
+
         return
-    print('Message: {} successfully produced to Topic: {} Partition: [{}] at offset {}'.format(
-        msg.key(), msg.topic(), msg.partition(), msg.offset()))
+
+    print((
+        f'Message: {msg.key()} successfully produced '
+        f'to Topic: {msg.topic()} '
+        f'Partition: [{msg.partition()}] '
+        f'at offset {msg.offset()}'
+        ))
 
 
 if __name__ == "__main__":
-    print("Starting Kafka Producer\n")
-    producer = Producer(config)
-    producer.poll(0)
-    with pd.read_csv(PATH, chunksize=CHUNK_SIZE, nrows=2000) as reader:
+    rows_count = 500
+
+    # TODO: Consider improving user input validation (look into argparse)
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        rows_count = int(sys.argv[1])
+
+    print("Starting Kafka Producer.")
+
+    producer = Producer(producer_config)
+
+    with pd.read_csv(PATH, chunksize=1, nrows=rows_count) as reader:
         for chunk in reader:
             try:
-                producer.produce("records", value=chunk.to_json(orient = "values").encode("utf-8"), key=str(chunk.iloc[0]["ID"]), on_delivery=delivery_report)
+                producer.produce(
+                    "records",
+                    value=chunk.to_json(orient = "values").encode("utf-8"),
+                    key=str(chunk.iloc[0]["ID"]),
+                    on_delivery=delivery_report
+                )
                 producer.flush()
-            except Exception as ex:
-                print("Exception happend: ", ex)
+            except Exception as e:
+                print(f"Exception happend: {e}")
 
-    print("\n Stopping Kafka Producer")
+    print("Stopping Kafka Producer.")

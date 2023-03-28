@@ -1,54 +1,66 @@
-# cd "C:\Users\37061\OneDrive\Stalinis kompiuteris\Code\13_job_offers\03_pubsub" && source ./venv/Scripts/activate && clear
-# python streams.py
-
-import atexit
 from confluent_kafka import Consumer, Producer
-from typing import Dict
+from config import SERVER
+import atexit
 
-consumer_config: Dict[str, str] = {
-    "bootstrap.servers": "localhost:29092",
-    "group.id": "consumer-2"
+consumer_config = {
+    "bootstrap.servers": SERVER,
+    "group.id": "streams-consumer",
+    "auto.offset.reset": "earliest"
 }
 
-producer_config: Dict[str, str] = {
-    "bootstrap.servers": "localhost:29092",
+
+producer_config = {
+    "bootstrap.servers": SERVER,
 }
 
-unique_IDs = {}
+
+existing_messages = {}
+
 
 def delivery_report(err, msg):
     if err is not None:
-        print("Delivery failed for Message: {} : {}".format(msg.key(), err))
+        print(f"Delivery failed for Message: {msg.key()} : {err}")
         return
-    # print('Message: {} successfully produced to Topic: {} Partition: [{}] at offset {}'.format(
-    #     msg.key(), msg.topic(), msg.partition(), msg.offset()))
+    # print((
+    #     f'Message: {msg.key()} successfully produced '
+    #     f'to Topic: {msg.topic()} '
+    #     f'Partition: [{msg.partition()}] '
+    #     f'at offset {msg.offset()}'
+    #     ))
+
 
 def exit_handler(consumer):
     consumer.close()
-    print('My application is ending!')
+    print('Kafka Consumer got closed!')
+
 
 if __name__ == "__main__":
-    print("Starting Kafka Streams\n")
+    print("Starting Kafka Streams.")
+
     consumer = Consumer(consumer_config)
+    producer = Producer(producer_config)
+
     atexit.register(exit_handler, consumer)
     consumer.subscribe(["records"])
-    producer = Producer(producer_config)
-    producer.poll(0)
+
     while True:
-        msg = consumer.poll(0)
+        msg = consumer.poll(1.0)
+
         if msg == None:
             continue
+
         if msg.error():
-            print("Consumer error: {}".format(msg.error()))
+            print(f"Consumer error: {msg.error()}")
             break
-        if msg.key().decode("utf-8") in unique_IDs:
-            # print(msg.key().decode("utf-8"))
-            # print(f"The above key already exists in topic \"filtered\" and has not been pushed. The current count of unique IDs is {len(unique_IDs)}.")
-            print(f"The current count of unique IDs is {len(unique_IDs)}.")
+
+        if msg.key().decode("utf-8") in existing_messages:
+            print(f"The current count of unique IDs is {len(existing_messages)}.")
             continue
-        # print(msg.key().decode("utf-8"))
-        print(f"The current count of unique IDs is {len(unique_IDs)}.")
-        unique_IDs[msg.key().decode("utf-8")] = None
-        producer.produce("filtered", value=msg.value(), key=msg.key(), on_delivery=delivery_report)
+
+        print(f"The current count of unique IDs is {len(existing_messages)}.")
+
+        existing_messages[msg.key().decode("utf-8")] = 0
+        producer.produce("unique_records", value=msg.value(), key=msg.key(), on_delivery=delivery_report)
         producer.flush()
-        # print(msg.value().decode("utf-8"))
+
+    print("Stopping Kafka Streams.")

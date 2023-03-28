@@ -1,38 +1,39 @@
-from confluent_kafka.admin import AdminClient, NewTopic
 import time
+from confluent_kafka.admin import AdminClient, NewTopic
+from config import SERVER
 
-# TODO: refactor to one file with options (sys.argv)
-config = {
-    "bootstrap.servers": "localhost:29092"
+
+admin_config = {
+    "bootstrap.servers": SERVER
 }
 
-topic_config = {
-    "retention.ms": "3000"
-}
+# topic_config = {
+#     "retention.ms": "3000"
+# }
 
-admin = AdminClient(config)
 
-fs = admin.delete_topics(["records", "filtered"])
+if __name__ == "__main__":
+    print("Starting Kafka Admin.")
 
-# Wait for each operation to finish.
-for topic, f in fs.items():
-    try:
-        f.result()  # The result itself is None
-        print("Topic {} deleted".format(topic))
-    except Exception as e:
-        print("Failed to delete topic {}: {}".format(topic, e))
+    admin = AdminClient(admin_config)
+    topic_metadata = admin.list_topics()
 
-# TODO: refactor to not use sleep
-time.sleep(0.3)
+    topics = ["records", "unique_records"]
+    existing = {topic: topic_metadata.topics.get(topic) for topic in topics}
 
-# topic = [NewTopic("records", num_partitions=3, replication_factor=1, config=topic_config)]
-topic = [NewTopic("records", num_partitions=3, replication_factor=1), NewTopic("filtered", num_partitions=3, replication_factor=1)]
-fs_2 = admin.create_topics(topic)
+    for topic in topics:
+        if existing[topic] != None:
+            admin.delete_topics([topic])
+            print(f"Topic {topic} deleted")
 
-# Wait for each operation to finish.
-for topic, f in fs_2.items():
-    try:
-        f.result()  # The result itself is None
-        print("Topic {} created".format(topic))
-    except Exception as e:
-        print("Failed to create topic {}: {}".format(topic, e))
+    # Waiting for topics marked for deletion are actually deleted.
+    time.sleep(0.3)
+
+    topics_to_create = [NewTopic(topic, num_partitions=3, replication_factor=1) for topic in topics]
+    res = admin.create_topics(topics_to_create, validate_only=False)
+
+    for topic, f in res.items():
+        f.result()
+
+    print(f"Topics {', '.join(topics)} created")
+    print("Stopping Kafka Admin.")
