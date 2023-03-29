@@ -25,7 +25,7 @@ def delivery_report(err, msg):
 if __name__ == "__main__":
     rows_count = 500
 
-    # TODO: Consider improving user input validation (look into argparse)
+    # TODO: Consider improving user input validation
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         rows_count = int(sys.argv[1])
 
@@ -38,7 +38,8 @@ if __name__ == "__main__":
             try:
                 producer.produce(
                     "records",
-                    value=chunk.to_json(orient = "values").encode("utf-8"),
+                    # Hacky way to make it a JSON object
+                    value=chunk.to_json(orient = "records")[1:-1].encode("utf-8"),
                     key=str(chunk.iloc[0]["ID"]),
                     on_delivery=delivery_report
                 )

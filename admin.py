@@ -7,9 +7,20 @@ admin_config = {
     "bootstrap.servers": SERVER
 }
 
+
 # topic_config = {
 #     "retention.ms": "3000"
 # }
+
+
+# 😭
+# def wait_until_deleted(admin, topic_list):
+#     while True:
+#         topic_metadata = admin.list_topics()
+#         print(topic_metadata.topics.get(topic_list[0]))
+#         if all(topic_metadata.topics.get(topic) == None for topic in topic_list):
+#             return
+#         print("Waiting for topics to be deleted.")
 
 
 if __name__ == "__main__":
@@ -27,6 +38,7 @@ if __name__ == "__main__":
             print(f"Topic {topic} deleted")
 
     # Waiting for topics marked for deletion to be actually deleted.
+    # wait_until_deleted(admin, topics)
     time.sleep(0.3)
 
     topics_to_create = [NewTopic(topic, num_partitions=3, replication_factor=1) for topic in topics]
