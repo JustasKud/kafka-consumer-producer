@@ -26,7 +26,7 @@ if __name__ == "__main__":
             admin.delete_topics([topic])
             print(f"Topic {topic} deleted")
 
-    # Waiting for topics marked for deletion are actually deleted.
+    # Waiting for topics marked for deletion to be actually deleted.
     time.sleep(0.3)
 
     topics_to_create = [NewTopic(topic, num_partitions=3, replication_factor=1) for topic in topics]
