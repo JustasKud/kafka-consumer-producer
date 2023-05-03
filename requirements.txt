@@ -1,6 +1,7 @@
-confluent-kafka==2.0.2
-numpy==1.24.2
-pandas==1.5.3
+confluent-kafka==2.1.0
+numpy==1.24.3
+pandas==2.0.1
 python-dateutil==2.8.2
-pytz==2023.2
+pytz==2023.3
 six==1.16.0
+tzdata==2023.3
